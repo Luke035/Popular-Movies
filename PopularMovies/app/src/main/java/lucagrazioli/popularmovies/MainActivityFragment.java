@@ -2,6 +2,7 @@ package lucagrazioli.popularmovies;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
 import java.net.URL;
@@ -31,6 +33,9 @@ public class MainActivityFragment extends Fragment {
 
     private PostersAdapter mPosterAdapter;
     private GridView postersGrid;
+    private static final int landscape_columns = 5;
+    private static final int portrait_columns = 3;
+    private String last_sorting_pref;
 
     public MainActivityFragment() {
     }
@@ -49,22 +54,83 @@ public class MainActivityFragment extends Fragment {
                 Poster selectedPoster = (Poster) mPosterAdapter.getItem(position);
 
                 Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
-                intent.putExtra(Intent.EXTRA_TEXT, selectedPoster);
+                intent.putExtra(Intent.EXTRA_TEXT, (Serializable) selectedPoster);
 
                 startActivity(intent);
             }
         });
 
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        last_sorting_pref = prefs.getString(getString(R.string.pref_sorting_key),getString(R.string.pref_sorting_pop_key));
+
+        if(savedInstanceState==null || !savedInstanceState.containsKey("posters")){
+            updateMovies();
+        }else{
+            Log.v("bundle_debug","restoring");
+
+            Poster [] posters = (Poster[]) savedInstanceState.getParcelableArray("posters");
+
+            List<Poster> posterList = new ArrayList<Poster>();
+
+            for (Poster p : posters) {
+                Log.v("bundle_debug","found"+p.getTitle());
+
+                posterList.add(p);
+            }
+
+            mPosterAdapter = new PostersAdapter(getActivity(),posterList);
+            postersGrid.setAdapter(mPosterAdapter);
+            if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+                postersGrid.setNumColumns(landscape_columns);
+            }
+            if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+                postersGrid.setNumColumns(portrait_columns);
+            }
+            mPosterAdapter.notifyDataSetChanged();
+        }
+
         return rootView;
     }
 
     @Override
+    public void onSaveInstanceState(Bundle outState) {
+        Poster [] posters = new Poster[mPosterAdapter.getCount()];
+
+        if(posters.length>0) {
+            for(int i=0; i<posters.length; i++){
+                posters[i] = (Poster) mPosterAdapter.getItem(i);
+            }
+            outState.putParcelableArray("posters", posters);
+        }
+
+        super.onSaveInstanceState(outState);
+    }
+
+
+    @Override
     public void onStart() {
+        Log.v("bundle_debug","on start called");
         super.onStart();
-        updateMovies();
+
+        /*
+        onStart method check whenever the sorting preference is changed, only when this condition
+        it's verified, the method begins the update procedure. This check is useful to avoid useless
+        update (example rotated screen).
+         */
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sorting = prefs.getString(getString(R.string.pref_sorting_key),getString(R.string.pref_sorting_pop_key));
+
+        Log.d("bundle_debug","last preference: "+last_sorting_pref+" actual: "+sorting);
+
+        if(!sorting.equals(last_sorting_pref)) {
+            this.last_sorting_pref = sorting;
+            updateMovies();
+        }
     }
 
     private void updateMovies(){
+        Log.v("bundle_debug","update called");
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String sorting = prefs.getString(getString(R.string.pref_sorting_key),getString(R.string.pref_sorting_pop_key));
 
@@ -214,6 +280,12 @@ public class MainActivityFragment extends Fragment {
 
                     mPosterAdapter = new PostersAdapter(getActivity(), posterList);
                     postersGrid.setAdapter(mPosterAdapter);
+                    if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+                        postersGrid.setNumColumns(landscape_columns);
+                    }
+                    if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+                        postersGrid.setNumColumns(portrait_columns);
+                    }
                     mPosterAdapter.notifyDataSetChanged();
 
                     Log.v(LOG_TAG,"added adapter "+mPosterAdapter.getCount());
