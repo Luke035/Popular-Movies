@@ -66,14 +66,12 @@ public class MainActivityFragment extends Fragment {
         if(savedInstanceState==null || !savedInstanceState.containsKey("posters")){
             updateMovies();
         }else{
-            Log.v("bundle_debug","restoring");
 
             Poster [] posters = (Poster[]) savedInstanceState.getParcelableArray("posters");
 
             List<Poster> posterList = new ArrayList<Poster>();
 
             for (Poster p : posters) {
-                Log.v("bundle_debug","found"+p.getTitle());
 
                 posterList.add(p);
             }
@@ -109,7 +107,6 @@ public class MainActivityFragment extends Fragment {
 
     @Override
     public void onStart() {
-        Log.v("bundle_debug","on start called");
         super.onStart();
 
         /*
@@ -121,7 +118,6 @@ public class MainActivityFragment extends Fragment {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String sorting = prefs.getString(getString(R.string.pref_sorting_key),getString(R.string.pref_sorting_pop_key));
 
-        Log.d("bundle_debug","last preference: "+last_sorting_pref+" actual: "+sorting);
 
         if(!sorting.equals(last_sorting_pref)) {
             this.last_sorting_pref = sorting;
@@ -130,7 +126,6 @@ public class MainActivityFragment extends Fragment {
     }
 
     private void updateMovies(){
-        Log.v("bundle_debug","update called");
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String sorting = prefs.getString(getString(R.string.pref_sorting_key),getString(R.string.pref_sorting_pop_key));
 
